@@ -12,6 +12,7 @@ PYTHON_VERSION="3.8.9"
 OPENMP_VERSION="12.0.0"
 SQLITE_VERSION="3350400"
 GETTEXT_VERSION="0.21"
+OPENSSL_VERSION="1.1.1k"
 
 CACHE_FOLDER="$HOME/.cache/inv_package"
 BASE_FOLDER=$PWD
@@ -105,6 +106,28 @@ function compile_gettext() {
     unset CC   
 }
 
+function compile_openssl() {
+    local OPENSSL_URL="https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz"
+    local OPENSSL_TARGZ="openssl.tar.gz"
+    export CC="/usr/bin/clang"
+    pushd $COMPILATION_FOLDER
+    download $OPENSSL_URL $OPENSSL_TARGZ
+    tar xf $CACHE_FOLDER/$OPENSSL_TARGZ
+    pushd openssl-$OPENSSL_VERSION
+    local PARAMS=(
+        --prefix=$PREFIX
+        no-ssl3
+        no-ssl3-method
+        no-zlib
+    )
+    ./config ${PARAMS[@]}
+    make
+    make install
+    popd
+    popd
+    unset CC
+}
+
 function compile_python() {
     local PYTHON_URL="https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz"
     local PYTHON_TARGZ="Python-$PYTHON_VERSION.tar.gz"
@@ -120,7 +143,13 @@ function compile_python() {
     # To not depends on gettext libintl
     sed -i '.original' 's/libintl.h//g' configure
     sed -i '.original' 's/ac_cv_lib_intl_textdomain=yes/ac_cv_lib_intl_textdomain=no/g' configure
-    ./configure --prefix=$PREFIX --enable-framework=$PREFIX
+    local PARAMS=(
+        --prefix=$PREFIX
+        --enable-framework=$PREFIX
+        --with-openssl=$PREFIX
+        --enable-ipv6
+    )
+    ./configure ${PARAMS[@]}
     make
     make install
     popd
@@ -158,7 +187,7 @@ function copy_app_folder() {
 
 function install_requirements() {
     pushd $APP_FOLDER
-    $PYTHON_BIN -m pip install -r requirements.txt
+    $PYTHON_BIN -m pip install -r requirements.txt --no-warn-script-location
     popd
 }
 
@@ -177,8 +206,9 @@ function compile_cython_code() {
 create_folder_structures
 #compile_sqlite
 #compile_gettext
+#compile_openssl
 #compile_python
 #compile_openmp
 #copy_app_folder
-install_requirements
+#install_requirements
 compile_cython_code
