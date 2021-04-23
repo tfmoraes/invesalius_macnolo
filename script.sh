@@ -11,6 +11,7 @@ APPLICATION_NAME="InVesalius"
 PYTHON_VERSION="3.8.9"
 OPENMP_VERSION="12.0.0"
 SQLITE_VERSION="3350400"
+GETTEXT_VERSION="0.21"
 
 CACHE_FOLDER="$HOME/.cache/inv_package"
 BASE_FOLDER=$PWD
@@ -19,6 +20,8 @@ APP_FOLDER="$PACKAGE_FOLDER/Contents/Resources/app"
 LIBS_FOLDER="$PACKAGE_FOLDER/Contents/Resources/libs"
 PREFIX=$LIBS_FOLDER
 COMPILATION_FOLDER=$(mktemp -d)
+
+PYTHON_BIN="$PREFIX/bin/python3"
 
 cleanup() {
     echo "Cleaning up"
@@ -70,6 +73,38 @@ function compile_sqlite() {
     unset CPPFLAGS
 }
 
+function compile_gettext() {
+    local GETTEXT_URL="https://ftp.gnu.org/gnu/gettext/gettext-$GETTEXT_VERSION.tar.xz"
+    local GETTEXT_TARGZ="gettext.tar.xz"
+    export CC="/usr/bin/clang"
+    pushd $COMPILATION_FOLDER
+    download $GETTEXT_URL $GETTEXT_TARGZ
+    tar xf $CACHE_FOLDER/$GETTEXT_TARGZ
+    pushd "gettext-$GETTEXT_VERSION"
+    local PARAMS=(
+        --prefix=$PREFIX
+        --disable-dependency-tracking
+        --disable-debug
+        --disable-silent-rules
+        --with-included-gettext
+        --with-included-glib
+        --with-included-libcroco
+        --with-included-libunistring
+        --with-included-libxml
+        --disable-csharp
+        --disable-java
+        --without-git
+        --without-cvs
+        --without-xz
+    )
+    ./configure ${PARAMS[@]}
+    make
+    make install
+    popd
+    popd
+    unset CC   
+}
+
 function compile_python() {
     local PYTHON_URL="https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz"
     local PYTHON_TARGZ="Python-$PYTHON_VERSION.tar.gz"
@@ -82,6 +117,9 @@ function compile_python() {
     download $PYTHON_URL $PYTHON_TARGZ
     tar xf $CACHE_FOLDER/$PYTHON_TARGZ
     pushd "Python-$PYTHON_VERSION"
+    # To not depends on gettext libintl
+    sed -i '.original' 's/libintl.h//g' configure
+    sed -i '.original' 's/ac_cv_lib_intl_textdomain=yes/ac_cv_lib_intl_textdomain=no/g' configure
     ./configure --prefix=$PREFIX --enable-framework=$PREFIX
     make
     make install
@@ -108,7 +146,39 @@ function compile_openmp() {
     unset CC
 }
 
+function copy_app_folder() {
+    cp -r $INVESALIUS_SOURCE_FOLDER $APP_FOLDER
+    pushd $APP_FOLDER
+    rm -rf .git*
+    rm -rf docs/devel
+    rm -rf docs/*_source
+    rm -rf po
+    popd
+}
+
+function install_requirements() {
+    pushd $APP_FOLDER
+    $PYTHON_BIN -m pip install -r requirements.txt
+    popd
+}
+
+function compile_cython_code() {
+    export CC="/usr/bin/clang"
+    export CPP="/usr/bin/clang++"
+    export CFLAGS="-I$PREFIX/include"
+    export LDFLAGS="-L$PREFIX/lib"
+    export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+    export CPPFLAGS="$CFLAGS"
+    pushd $APP_FOLDER
+    $PYTHON_BIN setup.py build_ext --inplace
+    popd
+}
+
 create_folder_structures
 #compile_sqlite
-compile_python
-compile_openmp
+#compile_gettext
+#compile_python
+#compile_openmp
+#copy_app_folder
+install_requirements
+compile_cython_code
