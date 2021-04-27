@@ -21,6 +21,7 @@ APP_FOLDER="$PACKAGE_FOLDER/Contents/Resources/app"
 LIBS_FOLDER="$PACKAGE_FOLDER/Contents/Resources/libs"
 PREFIX=$LIBS_FOLDER
 COMPILATION_FOLDER=$(mktemp -d)
+EXE_FOLDER=$PACKAGE_FOLDER/Contents/MacOS
 
 PYTHON_BIN="$PREFIX/bin/python3"
 
@@ -203,7 +204,24 @@ function compile_cython_code() {
     popd
 }
 
-create_folder_structures
+function make_relocatable() {
+    pushd $APP_FOLDER/invesalius_cy
+    for so in *.so; do
+        echo "Adding rpath to $so"
+        install_name_tool -add_rpath "@loader_path/../../libs/lib/" $so
+    done
+    popd
+}
+
+function create_exe() {
+    cp invesalius.c $COMPILATION_FOLDER
+    pushd $COMPILATION_FOLDER
+    clang invesalius.c -o invesalius
+    cp invesalius $EXE_FOLDER
+    popd
+}
+
+#create_folder_structures
 #compile_sqlite
 #compile_gettext
 #compile_openssl
@@ -211,4 +229,6 @@ create_folder_structures
 #compile_openmp
 #copy_app_folder
 #install_requirements
-compile_cython_code
+#compile_cython_code
+#make_relocatable
+create_exe
