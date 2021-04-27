@@ -8,6 +8,8 @@ set -o xtrace
 INVESALIUS_SOURCE_FOLDER=$1
 
 APPLICATION_NAME="InVesalius"
+VERSION="3.1.99995"
+
 PYTHON_VERSION="3.8.9"
 OPENMP_VERSION="12.0.0"
 SQLITE_VERSION="3350400"
@@ -221,14 +223,36 @@ function create_exe() {
     popd
 }
 
-#create_folder_structures
-#compile_sqlite
-#compile_gettext
-#compile_openssl
-#compile_python
-#compile_openmp
-#copy_app_folder
-#install_requirements
-#compile_cython_code
-#make_relocatable
+function copy_icon() {
+    cp invesalius.icns $PACKAGE_FOLDER/Contents/Resources
+}
+
+function create_info_plist() {
+        local FILENAME="$PACKAGE_FOLDER/Contents/Info.plist"
+        /usr/libexec/PlistBuddy -c "add CFBundlePackageType string APPL" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleInfoDictionaryVersion string 6.0" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleIconFile string invesalius.icns" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleName string $APPLICATION_NAME" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleDisplayName string $APPLICATION_NAME" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleExecutable string $APPLICATION_NAME" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleIdentifier string br.gov.cti.invesalius" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleVersion string $VERSION" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleGetInfoString string $VERSION" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleShortVersionString string $VERSION" $FILENAME
+        /usr/libexec/PlistBuddy -c "add NSPrincipalClass string NSApplication" $FILENAME
+        /usr/libexec/PlistBuddy -c "add NSMainNibFile string MainMenu" $FILENAME
+}
+
+create_folder_structures
+compile_sqlite
+compile_gettext
+compile_openssl
+compile_python
+compile_openmp
+copy_app_folder
+install_requirements
+compile_cython_code
+make_relocatable
 create_exe
+copy_icon
+create_info_plist
