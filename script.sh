@@ -25,7 +25,7 @@ PREFIX=$LIBS_FOLDER
 COMPILATION_FOLDER=$(mktemp -d)
 EXE_FOLDER=$PACKAGE_FOLDER/Contents/MacOS
 
-PYTHON_BIN="$PREFIX/bin/python3"
+PYTHON_BIN="$PREFIX/Python.framework/Versions/Current/bin/python3"
 
 cleanup() {
     echo "Cleaning up"
@@ -178,6 +178,10 @@ function compile_openmp() {
     unset CC
 }
 
+function install_python() {
+    relocatable-python/make_relocatable_python_framework.py  --python-version=3.8.9 --destination=$PREFIX
+}
+
 function copy_app_folder() {
     cp -r $INVESALIUS_SOURCE_FOLDER $APP_FOLDER
     pushd $APP_FOLDER
@@ -244,15 +248,16 @@ function create_info_plist() {
 }
 
 create_folder_structures
-compile_sqlite
-compile_gettext
-compile_openssl
-compile_python
-compile_openmp
+#compile_sqlite
+#compile_gettext
+#compile_openssl
+#compile_python
+#install_python
+#compile_openmp
 copy_app_folder
-install_requirements
-compile_cython_code
-make_relocatable
+#install_requirements
+#compile_cython_code
+#make_relocatable
 create_exe
 copy_icon
 create_info_plist
