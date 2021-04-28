@@ -187,6 +187,7 @@ function copy_app_folder() {
     pushd $APP_FOLDER
     rm -rf .git*
     rm -rf docs/devel
+    rm -rf docs/user_guide_figures
     rm -rf docs/*_source
     rm -rf po
     popd
@@ -207,6 +208,7 @@ function compile_cython_code() {
     export CPPFLAGS="$CFLAGS"
     pushd $APP_FOLDER
     $PYTHON_BIN setup.py build_ext --inplace
+    rm -rf build
     popd
 }
 
@@ -247,17 +249,23 @@ function create_info_plist() {
         /usr/libexec/PlistBuddy -c "add NSMainNibFile string MainMenu" $FILENAME
 }
 
+
+function remove_unused_files() {
+    rm -rf $PREFIX/include
+}
+
 create_folder_structures
 #compile_sqlite
 #compile_gettext
 #compile_openssl
 #compile_python
-#install_python
-#compile_openmp
+install_python
+compile_openmp
 copy_app_folder
-#install_requirements
-#compile_cython_code
-#make_relocatable
+install_requirements
+compile_cython_code
+make_relocatable
 create_exe
 copy_icon
 create_info_plist
+remove_unused_files
