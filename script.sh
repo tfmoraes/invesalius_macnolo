@@ -212,11 +212,51 @@ function compile_cython_code() {
     popd
 }
 
+function copy_plugins() {
+    export CC="/usr/bin/clang"
+    export CPP="/usr/bin/clang++"
+    export CFLAGS="-I$PREFIX/include"
+    export LDFLAGS="-L$PREFIX/lib"
+    export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+    export CPPFLAGS="$CFLAGS"
+    pushd $COMPILATION_FOLDER
+    git clone https://github.com/tfmoraes/inv_plugin_test1.git
+    mkdir -p $APP_FOLDER/plugins/
+    cp -r inv_plugin_test1/change_spacing $APP_FOLDER/plugins/
+    cp -r inv_plugin_test1/porous_creation $APP_FOLDER/plugins/
+    cp -r inv_plugin_test1/remove_tiny_objects $APP_FOLDER/plugins/
+    popd
+
+    pushd $APP_FOLDER/plugins/porous_creation
+    $PYTHON_BIN setup.py build_ext --inplace
+    rm -rf build
+    popd
+
+    pushd $APP_FOLDER/plugins/remove_tiny_objects
+    $PYTHON_BIN setup.py build_ext --inplace
+    rm -rf build
+    popd
+}
+
 function make_relocatable() {
     pushd $APP_FOLDER/invesalius_cy
     for so in *.so; do
         echo "Adding rpath to $so"
         install_name_tool -add_rpath "@loader_path/../../libs/lib/" $so
+    done
+    popd
+
+    pushd $APP_FOLDER/plugins/porous_creation
+    for so in *.so; do
+        echo "Adding rpath to $so"
+        install_name_tool -add_rpath "@loader_path/../../../libs/lib/" $so
+    done
+    popd
+
+    pushd $APP_FOLDER/plugins/remove_tiny_objects
+    for so in *.so; do
+        echo "Adding rpath to $so"
+        install_name_tool -add_rpath "@loader_path/../../../libs/lib/" $so
     done
     popd
 }
@@ -264,6 +304,7 @@ compile_openmp
 copy_app_folder
 install_requirements
 compile_cython_code
+copy_plugins
 make_relocatable
 create_exe
 copy_icon
