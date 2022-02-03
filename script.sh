@@ -5,19 +5,40 @@ set -o pipefail
 set -o nounset
 set -o xtrace
 
+realpath() (
+  OURPWD=$PWD
+  cd "$(dirname "$1")"
+  LINK=$(readlink "$(basename "$1")")
+  while [ "$LINK" ]; do
+    cd "$(dirname "$LINK")"
+    LINK=$(readlink "$(basename "$1")")
+  done
+  REALPATH="$PWD/$(basename "$1")"
+  cd "$OURPWD"
+  echo "$REALPATH"
+)
+
+
 INVESALIUS_SOURCE_FOLDER=$1
 
 APPLICATION_NAME="InVesalius"
 VERSION="3.1.99997"
 
-PYTHON_VERSION="3.8.9"
+if [[ `uname -m` == 'arm64' ]]; then
+  PYTHON_VERSION="3.9.10"
+  OS_VERSION="11"
+else
+  PYTHON_VERSION="3.8.9"
+  OS_VERSION="10.9"
+fi
+
 OPENMP_VERSION="12.0.0"
 SQLITE_VERSION="3350400"
 GETTEXT_VERSION="0.21"
 OPENSSL_VERSION="1.1.1k"
 
 CACHE_FOLDER="$HOME/.cache/inv_package"
-BASE_FOLDER=$PWD
+BASE_FOLDER=$(dirname $(realpath $(dirname "$BASH_SOURCE")))
 PACKAGE_FOLDER="$BASE_FOLDER/$APPLICATION_NAME.app"
 APP_FOLDER="$PACKAGE_FOLDER/Contents/Resources/app"
 LIBS_FOLDER="$PACKAGE_FOLDER/Contents/Resources/libs"
@@ -179,7 +200,11 @@ function compile_openmp() {
 }
 
 function install_python() {
-    relocatable-python/make_relocatable_python_framework.py  --python-version=3.8.9 --destination=$PREFIX
+    relocatable-python/make_relocatable_python_framework.py  --python-version=$PYTHON_VERSION --os-version=11 --destination=$PREFIX
+}
+
+function lipo_libs() {
+  find $LIBS_FOLDER \( -name "*.dylib" -o -name "*.so" -o -name "*.o" \) -exec lipo -thin arm64 {} {} \;
 }
 
 function copy_app_folder() {
@@ -194,10 +219,17 @@ function copy_app_folder() {
 }
 
 function install_requirements() {
-    pushd $APP_FOLDER
-    $PYTHON_BIN -m pip install -r requirements.txt --no-warn-script-location
-    $PYTHON_BIN -m pip install certifi
-    popd
+    if [[ `uname -m` == 'arm64' ]]; then
+      pushd $BASE_FOLDER
+      $PYTHON_BIN -m pip install -r requirements_m1.txt --no-warn-script-location
+      $PYTHON_BIN -m pip install certifi
+      popd
+    else
+      pushd $APP_FOLDER
+      $PYTHON_BIN -m pip install -r requirements_m1.txt --no-warn-script-location
+      $PYTHON_BIN -m pip install certifi
+      popd
+    fi
 }
 
 function compile_cython_code() {
@@ -265,10 +297,12 @@ function make_relocatable() {
 }
 
 function create_exe() {
+    pushd $BASE_FOLDER
     cp invesalius.c $COMPILATION_FOLDER
     pushd $COMPILATION_FOLDER
     clang invesalius.c -o invesalius
     cp invesalius $EXE_FOLDER
+    popd
     popd
 }
 
@@ -303,6 +337,9 @@ create_folder_structures
 #compile_openssl
 #compile_python
 install_python
+if [[ `uname -m` == 'arm64' ]]; then
+  lipo_libs
+fi
 compile_openmp
 copy_app_folder
 install_requirements
