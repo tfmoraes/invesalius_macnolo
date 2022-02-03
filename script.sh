@@ -8,7 +8,7 @@ set -o xtrace
 INVESALIUS_SOURCE_FOLDER=$1
 
 APPLICATION_NAME="InVesalius"
-VERSION="3.1.99995"
+VERSION="3.1.99997"
 
 PYTHON_VERSION="3.8.9"
 OPENMP_VERSION="12.0.0"
@@ -196,6 +196,7 @@ function copy_app_folder() {
 function install_requirements() {
     pushd $APP_FOLDER
     $PYTHON_BIN -m pip install -r requirements.txt --no-warn-script-location
+    $PYTHON_BIN -m pip install certifi
     popd
 }
 
@@ -226,7 +227,9 @@ function copy_plugins() {
     cp -r inv_plugin_test1/porous_creation $APP_FOLDER/plugins/
     cp -r inv_plugin_test1/remove_tiny_objects $APP_FOLDER/plugins/
     popd
+}
 
+compile_plugins() {
     pushd $APP_FOLDER/plugins/porous_creation
     $PYTHON_BIN setup.py build_ext --inplace
     rm -rf build
@@ -304,7 +307,8 @@ compile_openmp
 copy_app_folder
 install_requirements
 compile_cython_code
-copy_plugins
+#copy_plugins
+compile_plugins
 make_relocatable
 create_exe
 copy_icon
