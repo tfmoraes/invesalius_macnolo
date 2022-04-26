@@ -200,11 +200,11 @@ function compile_openmp() {
 }
 
 function install_python() {
-    python3 relocatable-python/make_relocatable_python_framework.py  --python-version=$PYTHON_VERSION --os-version=$OS_VERSION --destination=$PREFIX
+    python3 relocatable-python/make_relocatable_python_framework.py --python-version=$PYTHON_VERSION --os-version=$OS_VERSION --destination=$PREFIX
 }
 
 function lipo_libs() {
-  find $LIBS_FOLDER \( -name "*.dylib" -o -name "*.so" -o -name "*.o" \) -exec lipo -thin arm64 {} {} \;
+  find $LIBS_FOLDER \( -name "*.dylib" -o -name "*.so" -o -name "*.o" \) -exec lipo -thin arm64 {} -output {} \;
 }
 
 function copy_app_folder() {
@@ -220,7 +220,7 @@ function copy_app_folder() {
 
 function install_requirements() {
     if [[ `uname -m` == 'arm64' ]]; then
-      pushd $BASE_FOLDER
+      pushd $APP_FOLDER
       $PYTHON_BIN -m pip install -r requirements_m1.txt --no-warn-script-location
       $PYTHON_BIN -m pip install certifi
       popd
