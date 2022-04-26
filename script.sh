@@ -22,7 +22,7 @@ realpath() (
 INVESALIUS_SOURCE_FOLDER=$1
 
 APPLICATION_NAME="InVesalius"
-VERSION="3.1.99997"
+VERSION="3.1.99998"
 
 if [[ `uname -m` == 'arm64' ]]; then
   PYTHON_VERSION="3.9.10"
@@ -200,7 +200,7 @@ function compile_openmp() {
 }
 
 function install_python() {
-    relocatable-python/make_relocatable_python_framework.py  --python-version=$PYTHON_VERSION --os-version=11 --destination=$PREFIX
+    python3 relocatable-python/make_relocatable_python_framework.py  --python-version=$PYTHON_VERSION --os-version=$OS_VERSION --destination=$PREFIX
 }
 
 function lipo_libs() {
@@ -226,7 +226,7 @@ function install_requirements() {
       popd
     else
       pushd $APP_FOLDER
-      $PYTHON_BIN -m pip install -r requirements_m1.txt --no-warn-script-location
+      $PYTHON_BIN -m pip install -r requirements.txt --no-warn-script-location
       $PYTHON_BIN -m pip install certifi
       popd
     fi
@@ -319,6 +319,7 @@ function create_info_plist() {
         /usr/libexec/PlistBuddy -c "add CFBundleDisplayName string $APPLICATION_NAME" $FILENAME
         /usr/libexec/PlistBuddy -c "add CFBundleExecutable string $APPLICATION_NAME" $FILENAME
         /usr/libexec/PlistBuddy -c "add CFBundleIdentifier string br.gov.cti.invesalius" $FILENAME
+        /usr/libexec/PlistBuddy -c "add CFBundleSignature string br.gov.cti.invesalius" $FILENAME
         /usr/libexec/PlistBuddy -c "add CFBundleVersion string $VERSION" $FILENAME
         /usr/libexec/PlistBuddy -c "add CFBundleGetInfoString string $VERSION" $FILENAME
         /usr/libexec/PlistBuddy -c "add CFBundleShortVersionString string $VERSION" $FILENAME
