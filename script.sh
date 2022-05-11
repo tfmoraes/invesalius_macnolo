@@ -221,13 +221,13 @@ function copy_app_folder() {
 function install_requirements() {
     if [[ `uname -m` == 'arm64' ]]; then
       pushd $APP_FOLDER
-      $PYTHON_BIN -m pip install -r requirements_m1.txt --no-warn-script-location
-      $PYTHON_BIN -m pip install certifi
+      $PYTHON_BIN -m pip install -r requirements_m1.txt --no-warn-script-location --isolated
+      $PYTHON_BIN -m pip install --isolated certifi
       popd
     else
       pushd $APP_FOLDER
-      $PYTHON_BIN -m pip install -r requirements.txt --no-warn-script-location
-      $PYTHON_BIN -m pip install certifi
+      $PYTHON_BIN -m pip install -r requirements.txt --no-warn-script-location --isolated
+      $PYTHON_BIN -m pip install --isolated certifi
       popd
     fi
 }
